@@ -2,17 +2,16 @@
 package main
 
 import (
+	"fmt"
+	"github.com/micro/protobuf/protoc-gen-go/micro"
 	"log"
 	"net"
+
+	grpc "github.com/grpc/grpc-go"
+	"github.com/grpc/grpc-go/reflection"
 	// 导入生成的consignment.pb.go文件
 	pb "github.com/shippy/consignment-service/proto/consignment"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
-)
-
-const (
-	port = ":50051"
 )
 
 type IRepository interface {
@@ -44,35 +43,32 @@ type service struct {
 // CreateConsignment - 在proto中，我们只给这个微服务定一个了一个方法
 // 就是这个CreateConsignment方法，它接受一个context以及proto中定义的
 // Consignment消息，这个Consignment是由gRPC的服务器处理后提供给你的
-func (s *service) CreateConsignment(ctx context.Context, req *pb.Consignment) (*pb.Response, error) {
+func (s *service) CreateConsignment(ctx context.Context, req *pb.Consignment, res *pb.Response) error {
 	// 保存我们的consignment
 	consignment, err := s.repo.Create(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	// 返回的数据也要符合proto中定义的数据结构
-	return &pb.Response{Created: true, Consignment: consignment}, nil
+	res.Created = true
+	res.Consignment = consignment
+	return nil
 }
 
-func (s *service) GetConsignments(ctx context.Context, req *pb.GetRequest) (*pb.Response, error) {
+func (s *service) GetConsignments(ctx context.Context, req *pb.GetRequest, res *pb.Response) error {
 	consignments := s.repo.GetAll()
-	return &pb.Response{Consignments: consignments}, nil
+	res.Consignments = consignments
+	return nil
 }
 
 func main() {
 	repo := &Repository{}
-	// 设置gRPC服务器
-	lis, err := net.Listen("tcp", port)
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	s := grpc.NewServer()
-	// 在我们的gRPC服务器上注册微服务，这会将我们的代码和*.pb.go中
-	// 的各种interface对应起来
-	pb.RegisterShippingServiceServer(s, &service{repo})
-	// 在gRPC服务器上注册reflection
-	reflection.Register(s)
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+	src := micro.NewService(
+		micro.Name("go.micro.srv.consignment")),
+		micro.Version("lastest"),
+	)
+	srv.Init()
+	pb.RegisterShippingServiceHandler(srv.Server(), &service{repo})
+	if err := srv.Run(); err != nil  {
+		fmt.Println(err)
 	}
 }
