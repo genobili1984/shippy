@@ -3,13 +3,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/micro/protobuf/protoc-gen-go/micro"
-	"log"
-	"net"
-
-	grpc "github.com/grpc/grpc-go"
-	"github.com/grpc/grpc-go/reflection"
 	// 导入生成的consignment.pb.go文件
+	micro "github.com/micro/go-micro"
 	pb "github.com/shippy/consignment-service/proto/consignment"
 	"golang.org/x/net/context"
 )
@@ -62,13 +57,13 @@ func (s *service) GetConsignments(ctx context.Context, req *pb.GetRequest, res *
 
 func main() {
 	repo := &Repository{}
-	src := micro.NewService(
-		micro.Name("go.micro.srv.consignment")),
+	srv := micro.NewService(
+		micro.Name("go.micro.srv.consignment"),
 		micro.Version("lastest"),
 	)
 	srv.Init()
 	pb.RegisterShippingServiceHandler(srv.Server(), &service{repo})
-	if err := srv.Run(); err != nil  {
+	if err := srv.Run(); err != nil {
 		fmt.Println(err)
 	}
 }
